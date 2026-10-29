@@ -1,58 +1,96 @@
 # spam_detector
 AI-powered spam detector with a modern desktop GUI. Classifies SMS/messages as spam or ham using TF-IDF + machine learning (Naive Bayes, Logistic Regression, Linear SVM) with word-level explanations. Built with Python, scikit-learn and CustomTkinter.
 
+# 🛡 SpamShield — AI Spam Detector
 
-# SpamShield — AI Spam Detector
+A desktop app with a modern dark/light GUI that classifies messages as **spam** or **ham** (not spam) using a machine-learning model trained on the SMS Spam Collection dataset (`data/spam.csv`, 5,572 messages).
 
-A desktop app (modern dark/light GUI) that classifies messages as **spam** or **ham** using a
-machine-learning model trained on the SMS Spam Collection (`data/spam.csv`, 5,572 messages).
+## Quick start (Windows)
 
-## Run it
+**1. Download the project**
+Click the green **Code** button → **Download ZIP**, then right-click the zip and choose **Extract All**.
 
-```bash
-pip install -r requirements.txt
+**2. Open a terminal in the folder that contains `app.py`**
+The zip extracts to a folder inside a folder, so you may need to go one level deeper:
+
+```powershell
+cd spam_detector-main
+cd spam_detector
+```
+
+Check you're in the right place by running `dir`. You should see `app.py` and `requirements.txt` in the list.
+
+**3. (Recommended) Create a virtual environment**
+
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+**4. Install the libraries**
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+**5. Run the app**
+
+```powershell
 python app.py
 ```
 
-First launch trains the model automatically (~20 s) and saves it to `models/`.
-You can also train from the terminal: `python train_model.py` (or `--csv other.csv`).
+The first launch trains the model automatically (about 20 seconds) and saves it to `models/`.
 
-> Needs Python 3.9+ with Tk (included in the python.org installers for Windows/macOS;
-> on Debian/Ubuntu: `sudo apt install python3-tk`).
+> **Mac / Linux:** use `python3` instead of `python`, and `source .venv/bin/activate` to activate the environment.
+> Requires Python 3.9+ with Tk. It is included in the python.org installers for Windows and macOS. On Ubuntu/Debian: `sudo apt install python3-tk`
+
+## Troubleshooting
+
+| Error | Cause and fix |
+|---|---|
+| `Could not open requirements file: No such file or directory: 'requirements.txt'` | You are in the wrong folder. Run `cd spam_detector` (or whichever folder holds `app.py`), then run the install command again. |
+| `No module named 'pandas'` (or `customtkinter`, `sklearn`) | The libraries are not installed in the Python you are running. Run `python -m pip install -r requirements.txt`. Always use `python -m pip`, not plain `pip`, so the libraries go into the same Python that runs the app. |
+| "Training failed: No module named ..." in the app window | Same cause as above. Install the requirements, then restart the app. |
+| `No module named 'tkinter'` | Python was installed without Tk. Reinstall Python from python.org and tick **tcl/tk and IDLE**. |
+| `python` is not recognized | Install Python from python.org and tick **Add python.exe to PATH**, then reopen the terminal. |
+| Using PyCharm | Open the folder that contains `app.py` as the project. The Terminal tab should show `(.venv)` at the start of the line before you install. |
 
 ## Features
+
 | Page | What it does |
 |---|---|
-| **Scan message** | Paste text → verdict, spam probability, **which words pushed the score**, rule-based red flags, sensitivity slider, spam words highlighted in your text. `Ctrl+Enter` to analyze. |
-| **Batch scan** | Open a CSV (auto-detects the text column) or a `.txt` (one message per line), see spam rate, filter All/Spam/Ham, export results to CSV. |
-| **Model insights** | Accuracy / precision / recall / F1 / ROC-AUC, confusion matrix, 3-model comparison, top spam & ham words, **Retrain** button, train on your own labelled CSV. |
-| **History** | Everything checked this session; double-click to re-open. |
+| **Scan message** | Paste text and get a verdict, spam probability, the words that pushed the score, red flags and a sensitivity slider. Press `Ctrl+Enter` to analyze. |
+| **Batch scan** | Open a CSV or a `.txt` file (one message per line), see the spam rate, filter results and export them to CSV. |
+| **Model insights** | Accuracy, precision, recall, F1, ROC-AUC, confusion matrix, model comparison, top spam words, and a Retrain button. |
+| **History** | Everything you checked in this session. |
 
-## The ML pipeline (`train_model.py`)
-1. Load CSV (cp1252-safe), drop junk columns, **remove 414 duplicate messages** (prevents train/test leakage).
-2. Stratified 80/20 split (spam is only ~12 % of the data).
-3. Text normalisation: URLs / long numbers / currency symbols → generic tokens; `å£` encoding bug repaired.
-4. Features: TF-IDF **word 1–2-grams + character 3–5-grams**.
-5. Candidates: Multinomial Naive Bayes, Logistic Regression, Calibrated Linear SVM — compared with
-   **5-fold stratified CV** (F1 on the spam class); ties inside the noise band broken by CV ROC-AUC.
-6. Winner evaluated **once** on the untouched test set → numbers shown in the app are honest.
-   The shipped model is then refit on all data.
-7. Explanations: leave-one-word-out in log-odds space (works with any classifier).
+## The ML pipeline
 
-Typical held-out result: **~99.3 % accuracy, ~97.6 % precision, ~96.9 % recall, ROC-AUC ~0.999.**
+1. Load the CSV and remove duplicate messages (prevents train/test leakage).
+2. Stratified 80/20 train/test split.
+3. Normalize text: links, long numbers and currency symbols become generic tokens.
+4. Features: TF-IDF on word 1–2-grams plus character 3–5-grams.
+5. Compare Naive Bayes, Logistic Regression and a calibrated Linear SVM with 5-fold cross-validation.
+6. Evaluate the winner once on the untouched test set.
+7. Explain predictions by removing each word and measuring the change in the model's score.
 
-## Notes
-* Scanning `data/spam.csv` itself in Batch mode isn't a fair test — the shipped model has seen it.
-  Use fresh messages, or trust the held-out numbers in *Model insights*.
-* The dataset is English SMS from ~2005 (UK-heavy). Modern phishing, other languages or email
-  will need retraining on matching data — use *Train on another CSV…* (needs a label column
-  with `spam`/`ham` and a text column).
+**Held-out test results:** ~99.3% accuracy, ~97.6% precision, ~96.9% recall, ROC-AUC ~0.999.
 
-## Files
+## Limitations
+
+- The dataset is English SMS from around 2005, mostly UK, so modern phishing and other languages need retraining on matching data.
+- The shipped model has seen `data/spam.csv`, so scanning that file in Batch scan is not a fair test.
+
+## Project files
+
 ```
-app.py           GUI (customtkinter)
-spam_engine.py   inference, explanations, text normalisation
-train_model.py   training / evaluation pipeline
-data/spam.csv    dataset
-models/          saved model + metrics.json (created on first run)
+app.py            GUI (CustomTkinter)
+spam_engine.py    prediction, explanations, text cleaning
+train_model.py    training and evaluation pipeline
+data/spam.csv     dataset
+requirements.txt  dependencies
 ```
+
+## Tech stack
+
+Python · scikit-learn · pandas · CustomTkinter
